@@ -1,11 +1,11 @@
 #!/bin/bash
 ################################################################################
-# Script for Installation: ODOO Saas4/Trunk server on Ubuntu 14.04 LTS
+# Script for Installation: ODOO 8 server on Debian 7
 # Author: André Schenkels, ICTSTUDIO 2014
 #-------------------------------------------------------------------------------
 #  
 # This script will install ODOO Server on
-# clean Ubuntu 14.04 Server
+# clean Debian 7 Server
 #-------------------------------------------------------------------------------
 # USAGE:
 #
@@ -33,68 +33,69 @@ OE_CONFIG="$OE_USER-server"
 # Update Server
 #--------------------------------------------------
 echo -e "\n---- Update Server ----"
-sudo apt-get update
-sudo apt-get upgrade -y
+apt-get update
+apt-get upgrade -y
 
 #--------------------------------------------------
 # Install PostgreSQL Server
 #--------------------------------------------------
 echo -e "\n---- Install PostgreSQL Server ----"
-sudo apt-get install postgresql -y
+apt-get install postgresql -y
 	
 echo -e "\n---- PostgreSQL $PG_VERSION Settings  ----"
-sudo sed -i s/"#listen_addresses = 'localhost'"/"listen_addresses = '*'"/g /etc/postgresql/9.3/main/postgresql.conf
+sed -i s/"#listen_addresses = 'localhost'"/"listen_addresses = '*'"/g /etc/postgresql/9.1/main/postgresql.conf
 
 echo -e "\n---- Creating the ODOO PostgreSQL User  ----"
-sudo su - postgres -c "createuser -s $OE_USER" 2> /dev/null || true
+su - postgres -c "createuser -s $OE_USER" 2> /dev/null || true
 
 #--------------------------------------------------
 # Install Dependencies
 #--------------------------------------------------
 echo -e "\n---- Install tool packages ----"
-sudo apt-get install wget subversion git bzr bzrtools python-pip -y
+apt-get install wget subversion git bzr bzrtools python-pip -y
 	
 echo -e "\n---- Install python packages ----"
-sudo apt-get install python-dateutil python-feedparser python-ldap python-libxslt1 python-lxml python-mako python-openid python-psycopg2 python-pybabel python-pychart python-pydot python-pyparsing python-reportlab python-simplejson python-tz python-vatnumber python-vobject python-webdav python-werkzeug python-xlwt python-yaml python-zsi python-docutils python-psutil python-mock python-unittest2 python-jinja2 python-pypdf python-decorator python-requests python-passlib python-pil -y
+apt-get install python-dateutil python-feedparser python-ldap python-libxslt1 python-lxml python-mako python-openid python-psycopg2 python-pybabel python-pychart python-pydot python-pyparsing python-reportlab python-simplejson python-tz python-vatnumber python-vobject python-webdav python-werkzeug python-xlwt python-yaml python-zsi python-docutils python-psutil python-mock python-unittest2 python-jinja2 python-pypdf python-decorator python-requests python-passlib libjpeg-dev -y
 	
 echo -e "\n---- Install python libraries ----"
-sudo pip install gdata
+pip install gdata
+pip install -I pillow
 	
 echo -e "\n---- Create ODOO system user ----"
-sudo adduser --system --quiet --shell=/bin/bash --home=$OE_HOME --gecos 'ODOO' --group $OE_USER
+adduser --system --quiet --shell=/bin/bash --home=$OE_HOME --gecos 'ODOO' --group $OE_USER
 
 echo -e "\n---- Create Log directory ----"
-sudo mkdir /var/log/$OE_USER
-sudo chown $OE_USER:$OE_USER /var/log/$OE_USER
+mkdir /var/log/$OE_USER
+chown $OE_USER:$OE_USER /var/log/$OE_USER
 
 #--------------------------------------------------
 # Install ODOO
 #--------------------------------------------------
 echo -e "\n==== Installing ODOO Server ===="
-sudo git clone --branch $OE_VERSION https://www.github.com/odoo/odoo $OE_HOME_EXT/
+git clone --branch $OE_VERSION https://www.github.com/odoo/odoo $OE_HOME_EXT/
 
 echo -e "\n---- Create custom module directory ----"
-sudo su $OE_USER -c "mkdir $OE_HOME/custom"
-sudo su $OE_USER -c "mkdir $OE_HOME/custom/addons"
+su $OE_USER -c "mkdir $OE_HOME/custom"
+su $OE_USER -c "mkdir $OE_HOME/custom/addons"
 
 echo -e "\n---- Setting permissions on home folder ----"
-sudo chown -R $OE_USER:$OE_USER $OE_HOME/*
+chown -R $OE_USER:$OE_USER $OE_HOME/*
 
 echo -e "* Create server config file"
-sudo cp $OE_HOME_EXT/debian/openerp-server.conf /etc/$OE_CONFIG.conf
-sudo chown $OE_USER:$OE_USER /etc/$OE_CONFIG.conf
-sudo chmod 640 /etc/$OE_CONFIG.conf
+cp $OE_HOME_EXT/debian/openerp-server.conf /etc/$OE_CONFIG.conf
+chown $OE_USER:$OE_USER /etc/$OE_CONFIG.conf
+chmod 640 /etc/$OE_CONFIG.conf
 
 echo -e "* Change server config file"
-sudo sed -i s/"db_user = .*"/"db_user = $OE_USER"/g /etc/$OE_CONFIG.conf
-sudo sed -i s/"; admin_passwd.*"/"admin_passwd = $OE_SUPERADMIN"/g /etc/$OE_CONFIG.conf
-sudo su root -c "echo 'logfile = /var/log/$OE_USER/$OE_CONFIG$1.log' >> /etc/$OE_CONFIG.conf"
-sudo su root -c "echo 'addons_path=$OE_HOME_EXT/addons,$OE_HOME/custom/addons' >> /etc/$OE_CONFIG.conf"
+sed -i s/"db_user = .*"/"db_user = $OE_USER"/g /etc/$OE_CONFIG.conf
+sed -i s/"; admin_passwd.*"/"admin_passwd = $OE_SUPERADMIN"/g /etc/$OE_CONFIG.conf
+echo 'logfile = /var/log/$OE_USER/$OE_CONFIG$1.log' >> /etc/$OE_CONFIG.conf
+echo 'addons_path=$OE_HOME_EXT/addons,$OE_HOME/custom/addons' >> /etc/$OE_CONFIG.conf
 
 echo -e "* Create startup file"
-sudo su root -c "echo '#!/bin/sh' >> $OE_HOME_EXT/start.sh"
-sudo su root -c "echo 'sudo -u $OE_USER $OE_HOME_EXT/openerp-server --config=/etc/$OE_CONFIG.conf' >> $OE_HOME_EXT/start.sh"
-sudo chmod 755 $OE_HOME_EXT/start.sh
+echo '#!/bin/sh' >> $OE_HOME_EXT/start.sh
+echo '-u $OE_USER $OE_HOME_EXT/openerp-server --config=/etc/$OE_CONFIG.conf' >> $OE_HOME_EXT/start.sh
+chmod 755 $OE_HOME_EXT/start.sh
 
 #--------------------------------------------------
 # Adding ODOO as a deamon (initscript)
@@ -173,12 +174,12 @@ echo 'esac' >> ~/$OE_CONFIG
 echo 'exit 0' >> ~/$OE_CONFIG
 
 echo -e "* Security Init File"
-sudo mv ~/$OE_CONFIG /etc/init.d/$OE_CONFIG
-sudo chmod 755 /etc/init.d/$OE_CONFIG
-sudo chown root: /etc/init.d/$OE_CONFIG
+mv ~/$OE_CONFIG /etc/init.d/$OE_CONFIG
+chmod 755 /etc/init.d/$OE_CONFIG
+chown root: /etc/init.d/$OE_CONFIG
 
 echo -e "* Start ODOO on Startup"
-sudo update-rc.d $OE_CONFIG defaults
+update-rc.d $OE_CONFIG defaults
  
-echo "Done! The ODOO server can be started with /etc/init.d/$OE_CONFIG"
+echo "Done! The ODOO server can be started with: service $OE_CONFIG start"
 
